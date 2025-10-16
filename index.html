@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>打卡之星｜C 方案（計薪＋班表＋帳號權限）</title>
+  <link rel="icon" href="data:,">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./style.css">
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
+  <script src="https://apis.google.com/js/api.js" defer></script>
+  <script src="https://accounts.google.com/gsi/client" defer></script>
+  <script src="./app.hotfix.js" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="wrap row">
+      <div class="brand">
+        <span class="dot"></span>
+        <b>打卡之星</b><span class="muted">｜C 方案（帳號＋計薪＋班表）</span>
+        <span class="badge">MVP</span>
+      </div>
+      <nav class="tabs" id="navTabs">
+        <button data-tab="att" class="active">打卡/出勤</button>
+        <button data-tab="leave">請假/簽核</button>
+        <button data-tab="pay">計薪</button>
+        <button data-tab="schedule">排班</button>
+        <button data-tab="people">人員</button>
+        <button data-tab="settings">設定</button>
+        <a class="btn" id="btnExportAll">匯出 JSON</a>
+        <span class="muted" id="loginChip" style="margin-left:8px"></span>
+        <button id="btnLogout" class="ghost">登出</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="wrap" style="padding-top:18px">
+
+    <section data-panel="login" class="card" id="loginPanel" style="max-width:560px;margin:40px auto;">
+      <h2>登入</h2>
+      <p class="muted">預設管理者 <code>admin / admin123</code>（請登入後立刻修改密碼）。</p>
+      <div class="row wrap">
+        <input id="loginUser" placeholder="帳號">
+        <input id="loginPass" placeholder="密碼" type="password">
+        <button id="btnLogin" class="primary">登入</button>
+      </div>
+    </section>
+
+    <section data-panel="att" class="card">
+      <div class="row between center">
+        <h2>快速打卡</h2>
+        <div id="gpsStatus" class="chip">GPS：未定位</div>
+      </div>
+      <div class="row wrap">
+        <select id="empSelect"></select>
+        <button id="btnIn" class="primary">上班打卡</button>
+        <button id="btnOut">下班打卡</button>
+        <input id="note" placeholder="備註（選填）" style="flex:1;min-width:220px">
+        <button id="btnGeo">重新定位</button>
+      </div>
+      <p class="muted">員工僅能替自己打卡；店長/管理者可依權限操作。</p>
+
+      <div class="kpi">
+        <div class="box"><div class="label">今日實到</div><div class="num" id="kpiAttend">0</div></div>
+        <div class="box"><div class="label">遲到</div><div class="num" id="kpiLate">0</div></div>
+        <div class="box"><div class="label">忘卡</div><div class="num" id="kpiMiss">0</div></div>
+        <div class="box"><div class="label">加班</div><div class="num" id="kpiOT">0</div></div>
+      </div>
+
+      <div class="row between center" style="margin-top:10px">
+        <h3>今日出勤紀錄</h3>
+        <div class="row">
+          <input id="dateFilter" type="date">
+          <button id="btnExportCsv">匯出 CSV</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>日期</th><th>姓名</th><th>部門</th><th>上班</th><th>下班</th><th>時數</th><th>狀態</th><th>備註</th></tr></thead>
+          <tbody id="logTbody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section data-panel="leave" class="card hidden">
+      <div class="row between center">
+        <h2>請假/簽核</h2>
+        <button id="btnNewLeave" class="primary">新增請假</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>申請日</th><th>姓名</th><th>假別</th><th>起訖</th><th>時數</th><th>狀態</th><th>操作</th></tr></thead>
+          <tbody id="leaveTbody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section data-panel="pay" class="card hidden">
+      <div class="row between center">
+        <h2>計薪（月結）</h2>
+        <div class="row">
+          <input id="payMonth" type="month">
+          <button id="btnCalc">重新計算</button>
+          <button id="btnExportPay">匯出薪資 CSV</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>姓名</th><th>部門</th><th>薪別</th><th>基本薪資</th><th>本月工時</th><th>平日 OT</th><th>休息日</th><th>國定</th><th>請假</th><th>遲/早(分)</th><th>獎懲</th><th>實發</th></tr></thead>
+          <tbody id="payTbody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section data-panel="schedule" class="card hidden">
+      <div class="row between center">
+        <h2>班表（管理者/店長）</h2>
+        <div class="row">
+          <button id="btnSchedToEmployees">套用到「員工班別」</button>
+        </div>
+      </div>
+      <div class="group">
+        <div id="driveDiag" class="chip" style="margin-bottom:8px;">Drive: 未初始化</div>
+        <h3>來源</h3>
+        <div class="row wrap">
+          <input type="file" id="fileInput" accept=".xlsx,.xls,.csv">
+          <button id="btnImportLocal">從本機匯入</button>
+          <span class="muted">或</span>
+          <button id="btnDriveAuth">連結 Google Drive</button>
+          <input id="driveFileId" placeholder="Drive 檔案 ID / 連結" style="min-width:260px">
+          <button id="btnDriveLoad">從雲端載入</button>
+          <button id="btnDriveUpload">上傳到雲端</button>
+        </div>
+      </div>
+      <div class="group">
+        <h3>欄位對應</h3>
+        <div class="row wrap" id="mapper"></div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>日期</th><th>姓名</th><th>部門</th><th>上班</th><th>下班</th><th>職稱</th></tr></thead>
+          <tbody id="schedTbody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section data-panel="people" class="card hidden">
+      <div class="row between center">
+        <h2>人員與帳號（管理者/店長）</h2>
+        <button id="btnBootstrap" class="ghost">建立示例人員</button>
+      </div>
+      <div class="row wrap">
+        <input id="uName" placeholder="姓名">
+        <input id="uUser" placeholder="帳號">
+        <input id="uPass" placeholder="密碼" type="password">
+        <select id="uRole">
+          <option value="staff">員工</option>
+          <option value="manager">店長</option>
+          <option value="admin">管理者</option>
+        </select>
+        <input id="uDept" placeholder="部門/店別">
+        <select id="uSalaryType">
+          <option value="hourly">時薪</option>
+          <option value="monthly">月薪</option>
+        </select>
+        <input id="uWage" placeholder="時薪或月薪金額" type="number" step="1">
+        <input id="uShiftIn" placeholder="上班 HH:MM" value="09:00">
+        <input id="uShiftOut" placeholder="下班 HH:MM" value="18:00">
+        <button id="btnAddUser" class="primary">新增/更新</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>姓名</th><th>帳號</th><th>角色</th><th>店別</th><th>薪別</th><th>基本薪資</th><th>班別</th><th>操作</th></tr></thead>
+          <tbody id="peopleTbody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section data-panel="settings" class="card hidden">
+      <h2>系統設定（本機）</h2>
+      <div class="row wrap">
+        <div class="group">
+          <h4>地理圍欄</h4>
+          <div class="row wrap">
+            <input id="geoLat" placeholder="緯度">
+            <input id="geoLng" placeholder="經度">
+            <input id="geoRadius" placeholder="半徑公尺（預設120）">
+          </div>
+        </div>
+        <div class="group">
+          <h4>計薪規則</h4>
+          <div class="row wrap">
+            <input id="ot1x" placeholder="平日 OT 倍數(1.33)" type="number" step="0.01">
+            <input id="ot2x" placeholder="休息日 OT 倍數(1.67)" type="number" step="0.01">
+            <input id="ot3x" placeholder="國定/例假 OT 倍數(2.00)" type="number" step="0.01">
+            <input id="lateFine" placeholder="遲到/早退 每分鐘扣(元)" type="number" step="1">
+            <input id="leaveDeduct" placeholder="請假 每小時扣(元)" type="number" step="1">
+            <button id="btnSaveRules">儲存規則</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <dialog id="leaveDlg">
+    <form method="dialog" class="dlg">
+      <h3>新增請假</h3>
+      <div class="row wrap">
+        <select id="lvEmp"></select>
+        <select id="lvType"><option>事假</option><option>病假</option><option>特休</option><option>公假</option><option>其他</option></select>
+        <input id="lvStart" type="datetime-local">
+        <input id="lvEnd" type="datetime-local">
+        <input id="lvNote" placeholder="備註（選填）">
+      </div>
+      <menu><button value="cancel">取消</button><button id="lvOk" value="ok" class="primary">建立</button></menu>
+    </form>
+  </dialog>
+
+  <footer class="footer">打卡之星 C 方案（計薪＋班表＋帳號權限）MVP © 2025</footer>
+
+  <script src="./app.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,24 @@
+*{box-sizing:border-box}body{margin:0;font:14px/1.5 'Noto Sans TC',system-ui;background:linear-gradient(180deg,#0b1020,#0d1326 30%,#0f172a);color:#e5e7eb}
+.wrap{max-width:1100px;margin:auto;padding:14px}
+.topbar{position:sticky;top:0;z-index:9;background:rgba(17,24,39,.8);backdrop-filter:saturate(160%) blur(8px);border-bottom:1px solid #1f2937}
+.topbar .row{display:flex;gap:10px;align-items:center;justify-content:space-between}
+.brand{display:flex;gap:8px;align-items:center}.dot{width:10px;height:10px;border-radius:50%;background:#22d3ee;box-shadow:0 0 12px #22d3ee}
+.badge{margin-left:8px;background:#0d1629;border:1px solid #233048;padding:2px 8px;border-radius:999px;font-size:12px;color:#b8d7ff}
+.tabs{display:flex;gap:6px;align-items:center}.tabs button,.tabs a{background:#0b1220;border:1px solid #233048;color:#c9defb;border-radius:10px;padding:8px 10px;cursor:pointer}
+.tabs button.active{background:linear-gradient(90deg,#22d3ee,#60a5fa);color:#082032;border:none;font-weight:700}
+.card{background:linear-gradient(180deg,#0e1729,#0b1120);border:1px solid #1f2937;border-radius:16px;padding:16px;box-shadow:0 10px 30px rgba(0,0,0,.25);margin-bottom:14px}
+.row{display:flex;gap:8px}.between{justify-content:space-between}.center{align-items:center}.wrap{flex-wrap:wrap}
+input,select,button{background:#0b1220;border:1px solid #233048;color:#e5e7eb;border-radius:10px;padding:10px}
+button.primary{background:linear-gradient(90deg,#22d3ee,#60a5fa);border:none;color:#082032;font-weight:700}
+button.ghost{background:#0b1220}
+.muted{color:#94a3b8}.mono{font-family:ui-monospace,Consolas,Menlo,monospace}
+.kpi{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:10px}.kpi .box{background:#0b1220;border:1px solid #223049;border-radius:12px;padding:12px}.kpi .label{color:#9fb2cc}.kpi .num{font:700 20px/1 var(--mono, ui-monospace)}
+.table-wrap{overflow:auto;border:1px solid #233048;border-radius:12px}
+table{width:100%;border-collapse:collapse;background:#0b1220}
+th,td{padding:8px;border-bottom:1px dashed #223049;text-align:left}
+h2{margin:0 0 8px}h3{margin:0 0 8px}
+.chip{padding:4px 10px;border-radius:999px;background:#0d1629;border:1px solid #233048;color:#b8d7ff}
+.group{margin:10px 0}
+.hidden{display:none}
+.footer{color:#7f8ea8;font-size:12px;text-align:center;padding:16px}
+dialog::backdrop{background:rgba(0,0,0,.45)}dialog .dlg{min-width:320px}
